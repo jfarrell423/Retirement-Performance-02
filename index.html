@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Portfolio Gain (Date Range)</title>
+  <style>
+    :root { --pad: 14px; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#f6f7fb; color:#111; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 18px; }
+    .card { background:#fff; border-radius: 16px; padding: 16px; box-shadow: 0 6px 18px rgba(0,0,0,.08); margin-bottom: 14px; }
+    h1 { font-size: 20px; margin: 0 0 10px; }
+    h2 { font-size: 16px; margin: 0 0 10px; }
+    label { display:block; font-size: 12px; opacity:.85; margin: 10px 0 6px; }
+    input, button, select { width: 100%; box-sizing: border-box; padding: 12px; border-radius: 12px; border: 1px solid #d7dbe7; font-size: 16px; background:#fff; }
+    button { background:#111; color:#fff; border:none; cursor:pointer; }
+    button.secondary { background:#e9ecf6; color:#111; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .row { display:flex; gap: 10px; flex-wrap: wrap; }
+    .pill { background:#f0f3ff; padding: 8px 10px; border-radius: 999px; font-size: 13px; }
+    .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .muted { opacity:.75; }
+    .small { font-size: 12px; }
+    .ok { color:#0b7a2a; }
+    .bad { color:#b00020; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { text-align:left; padding: 10px 6px; border-bottom: 1px solid #eef1fb; font-size: 14px; }
+    th { font-size: 12px; opacity: .8; }
+    .right { text-align:right; }
+    .danger { background:#fff4f4; border:1px solid #ffd5d5; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Portfolio Gain (Date Range)</h1>
+      <div class="muted small">
+        Offline app. Enter a starting balance and ending balance for a date range. Optionally include contributions/withdrawals to compute a money-weighted gain.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>1) Choose Date Range</h2>
+      <div class="grid">
+        <div>
+          <label for="startDate">Start date</label>
+          <input id="startDate" type="date" />
+        </div>
+        <div>
+          <label for="endDate">End date</label>
+          <input id="endDate" type="date" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <span class="pill">Days: <span class="mono" id="daysOut">—</span></span>
+        <span class="pill">Years: <span class="mono" id="yearsOut">—</span></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2) Enter Balances</h2>
+      <div class="grid">
+        <div>
+          <label for="beginBal">Beginning balance ($)</label>
+          <input id="beginBal" inputmode="decimal" placeholder="e.g., 614000" />
+        </div>
+        <div>
+          <label for="endBal">Ending balance ($)</label>
+          <input id="endBal" inputmode="decimal" placeholder="e.g., 640500" />
+        </div>
+      </div>
+
+      <label class="muted small" style="margin-top:10px;">
+        Optional: If you add money during the period (contributions) or take money out (withdrawals),
+        include the net flow below so the gain reflects performance more accurately.
+      </label>
+
+      <div class="grid3" style="margin-top:8px;">
+        <div>
+          <label for="netFlow">Net deposits/withdrawals ($)</label>
+          <input id="netFlow" inputmode="decimal" placeholder="0 (deposits +, withdrawals -)" />
+        </div>
+        <div>
+          <label for="flowTiming">Flow timing (approx.)</label>
+          <select id="flowTiming">
+            <option value="none">No flows / ignore timing</option>
+            <option value="mid" selected>Mostly mid-period</option>
+            <option value="start">Mostly near start</option>
+            <option value="end">Mostly near end</option>
+          </select>
+        </div>
+        <div>
+          <label for="showCagr">Annualized return</label>
+          <select id="showCagr">
+            <option value="yes" selected>Show CAGR</option>
+            <option value="no">Hide CAGR</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <button id="calcBtn">Calculate</button>
+        <button class="secondary" id="saveBtn" type="button">Save</button>
+        <button class="secondary" id="loadBtn" type="button">Load</button>
+        <button class="secondary" id="clearBtn" type="button">Clear</button>
+      </div>
+
+      <div class="muted small" id="saveMsg" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card" id="resultsCard">
+      <h2>Results</h2>
+      <table>
+        <tr>
+          <th>Metric</th>
+          <th class="right">Value</th>
+        </tr>
+        <tr>
+          <td>Simple gain ($)</td>
+          <td class="right mono" id="gainDollar">—</td>
+        </tr>
+        <tr>
+          <td>Simple gain (%)</td>
+          <td class="right mono" id="gainPct">—</td>
+        </tr>
+        <tr>
+          <td>Flow-adjusted gain ($)</td>
+          <td class="right mono" id="adjGainDollar">—</td>
+        </tr>
+        <tr>
+          <td>Flow-adjusted gain (%)</td>
+          <td class="right mono" id="adjGainPct">—</td>
+        </tr>
+        <tr id="cagrRow">
+          <td>Annualized return (CAGR)</td>
+          <td class="right mono" id="cagrOut">—</td>
+        </tr>
+      </table>
+
+      <div class="muted small" style="margin-top:10px;">
+        Notes:
+        <ul>
+          <li><b>Simple gain</b> = (End − Begin) ÷ Begin</li>
+          <li><b>Flow-adjusted</b> estimates performance if you added/withdrew money during the period (approximate timing).</li>
+          <li><b>CAGR</b> uses the flow-adjusted base if flows are provided; otherwise it uses the simple return.</li>
+        </ul>
+      </div>
+
+      <div class="card danger" style="margin-top:12px;">
+        <div class="small">
+          If your portfolio had lots of deposits/withdrawals spread across the period, the most accurate method is a time-weighted return using periodic values.
+          This app keeps it simple (but useful) for quick checks.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
+
